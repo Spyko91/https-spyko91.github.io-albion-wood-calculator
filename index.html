@@ -3,84 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Albion Wood Calculator - Bois & Raffinage</title>
+    <title>Albion Resources Calculator - Toutes les ressources</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🌲 Calculateur de Bois - Albion Online</h1>
-            <div class="server-selector">
-                <label for="server">Serveur :</label>
-                <select id="server">
-                    <option value="West">Amérique (West)</option>
-                    <option value="East">Asie (East)</option>
-                    <option value="Europe" selected>Europe</option>
-                </select>
+            <h1>⚒️ Calculateur de Ressources - Albion Online</h1>
+            
+            <!-- Sélecteurs globaux -->
+            <div class="global-controls">
+                <div class="server-selector">
+                    <label for="server">Serveur :</label>
+                    <select id="server">
+                        <option value="West">Amérique (West)</option>
+                        <option value="East">Asie (East)</option>
+                        <option value="Europe" selected>Europe</option>
+                    </select>
+                    
+                    <label for="city">Ville :</label>
+                    <select id="city">
+                        <optgroup label="Villes de bois">
+                            <option value="Thetford">Thetford (Bois)</option>
+                            <option value="Lymhurst">Lymhurst (Bois)</option>
+                        </optgroup>
+                        <optgroup label="Villes de pierre">
+                            <option value="Fort Sterling">Fort Sterling (Pierre)</option>
+                            <option value="Martlock">Martlock (Pierre)</option>
+                        </optgroup>
+                        <optgroup label="Villes de minerai">
+                            <option value="Bridgewatch">Bridgewatch (Minerai)</option>
+                            <option value="Martlock">Martlock (Minerai)</option>
+                        </optgroup>
+                        <optgroup label="Villes de cuir">
+                            <option value="Lymhurst">Lymhurst (Cuir)</option>
+                            <option value="Bridgewatch">Bridgewatch (Cuir)</option>
+                        </optgroup>
+                        <optgroup label="Villes de fibre">
+                            <option value="Thetford">Thetford (Fibre)</option>
+                            <option value="Fort Sterling">Fort Sterling (Fibre)</option>
+                        </optgroup>
+                        <optgroup label="Villes neutres">
+                            <option value="Caerleon">Caerleon</option>
+                            <option value="Brecilien">Brecilien</option>
+                        </optgroup>
+                    </select>
+                    
+                    <button id="refreshPrices" class="btn-primary">🔄 Mettre à jour tous les prix</button>
+                </div>
                 
-                <label for="city">Ville :</label>
-                <select id="city">
-                    <option value="Thetford">Thetford</option>
-                    <option value="Lymhurst">Lymhurst</option>
-                    <option value="Bridgewatch">Bridgewatch</option>
-                    <option value="Martlock">Martlock</option>
-                    <option value="Fort Sterling">Fort Sterling</option>
-                    <option value="Caerleon">Caerleon</option>
-                    <option value="Brecilien">Brecilien</option>
-                </select>
-                
-                <button id="refreshPrices" class="btn-primary">🔄 Mettre à jour les prix</button>
+                <div class="last-update">
+                    Dernière mise à jour : <span id="updateTime">-</span>
+                </div>
+                <div id="api-status" class="api-status info">Initialisation...</div>
             </div>
-            <div class="last-update">Dernière mise à jour : <span id="updateTime">-</span></div>
+            
+            <!-- Navigation par onglets -->
+            <div class="resource-tabs">
+                <button class="tab-btn active" data-resource="wood">🌲 Bois</button>
+                <button class="tab-btn" data-resource="stone">🪨 Pierre</button>
+                <button class="tab-btn" data-resource="ore">⛏️ Minerai</button>
+                <button class="tab-btn" data-resource="hide">🦌 Cuir</button>
+                <button class="tab-btn" data-resource="fiber">🌿 Fibre</button>
+            </div>
         </header>
 
         <main>
-            <table id="wood-table">
-                <thead>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Enchant</th>
-                        <th>Qté brute<br>nécessaire</th>
-                        <th>Prix achat<br>unitaire (brut)</th>
-                        <th>Prix total<br>brut</th>
-                        <th>Prix vente<br>(raffiné)</th>
-                        <th>Marge</th>
-                        <th>Profit estimé</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Rempli par JavaScript -->
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="7" class="total-label">TOTAL PROFIT POTENTIEL:</td>
-                        <td id="total-profit" class="total-value">0</td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
+            <!-- Conteneur du tableau actif -->
+            <div class="table-container" id="table-container">
+                <!-- Rempli par JavaScript -->
+            </div>
             
             <div class="loading" id="loading" style="display: none;">
                 <div class="spinner"></div>
                 <p>Chargement des prix depuis l'API...</p>
             </div>
             
-            <div class="info-panel">
-                <h3>📊 Informations sur le bois</h3>
-                <p>Les ressources enchantées (.1, .2, .3) apparaissent à partir du T4 :</p>
-                <ul>
-                    <li><strong>.0 (Normal)</strong> - Bois standard</li>
-                    <li><strong>.1 (Peu commun)</strong> - 7-8% en Anglia, 9-13% en Cumbria, 18-22% en Mercia</li>
-                    <li><strong>.2 (Rare)</strong> - Plus rare, meilleur Item Power</li>
-                    <li><strong>.3 (Exceptionnel)</strong> - Très rare, équivaut à un tier supérieur</li>
-                </ul>
-                <p class="note">💡 Les prix sont automatiquement récupérés depuis l'API Albion Data Project.</p>
+            <div class="info-panel" id="info-panel">
+                <h3 id="resource-info-title">📊 Informations sur les ressources</h3>
+                <div id="resource-info-content">
+                    <p>Sélectionnez une ressource pour voir ses informations.</p>
+                </div>
+                <div id="enchant-legend"></div>
             </div>
         </main>
     </div>
     
-    <script src="config.js"></script>
+    <script src="resources-data.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
