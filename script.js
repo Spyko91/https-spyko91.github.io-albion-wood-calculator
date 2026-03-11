@@ -118,7 +118,7 @@ function loadFallbackPrices() {
 }
 
 // ============================================
-// TEST API EUROPE - VERSION CORRIGÉE
+// TEST API EUROPE - VERSION FINALE CORRIGÉE
 // ============================================
 async function testEuropeAPI() {
     try {
@@ -207,8 +207,8 @@ async function testEuropeAPI() {
         alert(`❌ Échec de la connexion à l'API Europe
 
 Causes possibles:
-• Corsproxy.io est temporairement indisponible (vérifie sur https://corsproxy.io)
-• Votre navigateur bloque les requêtes CORS (désactive les extensions)
+• Corsproxy.io est temporairement indisponible
+• Votre navigateur bloque les requêtes CORS
 • L'API Albion est momentanément hors ligne (rare)
 
 Suggestions:
@@ -221,6 +221,30 @@ Suggestions:
         clearStatusAfterDelay();
     }
 }
+
+// ============================================
+// CHARGEMENT D'UNE RESSOURCE
+// ============================================
+function loadResource(resourceKey) {
+    selectedResource = resourceKey;
+    currentResourceData = RESOURCES[resourceKey];
+    
+    document.querySelector('h1').innerHTML = `${currentResourceData.icon} Calculateur de ${currentResourceData.name} - Albion Online`;
+    
+    const citySelect = document.getElementById('city');
+    if (citySelect) {
+        const defaultCity = currentResourceData.city;
+        const option = Array.from(citySelect.options).find(opt => opt.value === defaultCity);
+        if (option) {
+            citySelect.value = defaultCity;
+            selectedCity = defaultCity;
+        }
+    }
+    
+    renderResourceTable();
+    updateTabs();
+}
+
 // ============================================
 // RENDU DU TABLEAU
 // ============================================
