@@ -53,7 +53,6 @@ function loadResource(resourceKey) {
     // Afficher le tableau
     renderResourceTable();
     
-    // Mettre à jour les infos
     updateResourceInfo();
     
     // Mettre à jour les onglets
