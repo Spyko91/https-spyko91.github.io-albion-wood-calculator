@@ -7,6 +7,15 @@ let selectedResource = 'wood';
 let currentResourceData = RESOURCES.wood;
 let useApi = false;
 
+// Mapping des conversions pour l'API (brut → raffiné)
+const REFINED_MAP = {
+    'WOOD': 'PLANKS',
+    'ROCK': 'BLOCK',
+    'ORE': 'METALBAR',
+    'HIDE': 'LEATHER',
+    'FIBER': 'CLOTH'
+};
+
 // ============================================
 // INITIALISATION
 // ============================================
@@ -59,53 +68,90 @@ function savePrices() {
 }
 
 // ============================================
-// CHARGEMENT DES PRIX DEPUIS L'API (NOUVEAU)
+// CONSTRUCTION DE LA LISTE COMPLÈTE DES ITEMS
+// ============================================
+function getAllItemsByResource(resourceKey) {
+    const resource = RESOURCES[resourceKey];
+    return resource.items.map(item => item.itemId);
+}
+
+function getAllRawItems() {
+    let allItems = [];
+    Object.keys(RESOURCES).forEach(resourceKey => {
+        RESOURCES[resourceKey].items.forEach(item => {
+            if (!allItems.includes(item.itemId)) {
+                allItems.push(item.itemId);
+            }
+        });
+    });
+    return allItems;
+}
+
+function getRefinedId(rawId) {
+    // Remplacer le suffixe selon le type de ressource
+    for (const [key, value] of Object.entries(REFINED_MAP)) {
+        if (rawId.includes(key)) {
+            return rawId.replace(key, value);
+        }
+    }
+    return rawId; // Si pas de correspondance
+}
+
+// ============================================
+// CHARGEMENT DES PRIX DEPUIS L'API
 // ============================================
 async function fetchAllPricesFromAPI() {
     showLoading(true);
     showStatus('📡 Connexion à l\'API Albion...', 'info');
     
-    // Utiliser CORS Anywhere qui a fonctionné
     const proxyUrl = 'https://cors-anywhere.com/';
     
-    // Construire la liste des items à récupérer (pour le bois d'abord, puis on étendra)
-    const itemsToFetch = [
-        'T2_WOOD', 'T3_WOOD', 'T4_WOOD', 'T4_WOOD_LEVEL1', 'T4_WOOD_LEVEL2', 'T4_WOOD_LEVEL3', 'T4_WOOD_LEVEL4',
-        'T5_WOOD', 'T5_WOOD_LEVEL1', 'T5_WOOD_LEVEL2', 'T5_WOOD_LEVEL3', 'T5_WOOD_LEVEL4',
-        'T6_WOOD', 'T6_WOOD_LEVEL1', 'T6_WOOD_LEVEL2', 'T6_WOOD_LEVEL3', 'T6_WOOD_LEVEL4',
-        'T7_WOOD', 'T7_WOOD_LEVEL1', 'T7_WOOD_LEVEL2', 'T7_WOOD_LEVEL3', 'T7_WOOD_LEVEL4',
-        'T8_WOOD', 'T8_WOOD_LEVEL1', 'T8_WOOD_LEVEL2', 'T8_WOOD_LEVEL3', 'T8_WOOD_LEVEL4'
-    ];
+    // Récupérer tous les items bruts
+    const allRawItems = getAllRawItems();
     
-    const itemsRefined = itemsToFetch.map(item => 
-        item.replace('WOOD', 'PLANKS')
-    );
-    
-    const allItems = [...itemsToFetch, ...itemsRefined];
+    // Diviser en lots de 30 pour éviter les URL trop longues
+    const chunkSize = 30;
+    const rawChunks = [];
+    for (let i = 0; i < allRawItems.length; i += chunkSize) {
+        rawChunks.push(allRawItems.slice(i, i + chunkSize));
+    }
     
     try {
-        // Récupérer les prix bruts
-        const rawUrl = `https://europe.albion-online-data.com/api/v2/stats/prices/${itemsToFetch.join(',')}.json?locations=${selectedCity}&qualities=1`;
-        const rawResponse = await fetch(proxyUrl + rawUrl, {
-            headers: { 'Origin': window.location.origin }
-        });
+        let totalPrices = 0;
         
-        if (rawResponse.ok) {
-            const rawData = await rawResponse.json();
-            
-            // Traiter les données brutes
-            rawData.forEach(item => {
-                if (item && item.sell_price_min && item.sell_price_min.length > 0) {
-                    const itemId = item.item_id;
-                    const price = Math.min(...item.sell_price_min.map(p => p.Price));
-                    
-                    if (!currentPrices[itemId]) currentPrices[itemId] = {};
-                    currentPrices[itemId].raw = price;
-                }
+        // Traiter chaque lot d'items bruts
+        for (const chunk of rawChunks) {
+            const rawUrl = `https://europe.albion-online-data.com/api/v2/stats/prices/${chunk.join(',')}.json?locations=${selectedCity}&qualities=1`;
+            const rawResponse = await fetch(proxyUrl + rawUrl, {
+                headers: { 'Origin': window.location.origin }
             });
             
-            // Récupérer les prix raffinés
-            const refinedUrl = `https://europe.albion-online-data.com/api/v2/stats/prices/${itemsRefined.join(',')}.json?locations=${selectedCity}&qualities=1`;
+            if (rawResponse.ok) {
+                const rawData = await rawResponse.json();
+                
+                rawData.forEach(item => {
+                    if (item && item.sell_price_min && item.sell_price_min.length > 0) {
+                        const itemId = item.item_id;
+                        const price = Math.min(...item.sell_price_min.map(p => p.Price));
+                        
+                        if (!currentPrices[itemId]) currentPrices[itemId] = {};
+                        currentPrices[itemId].raw = price;
+                        totalPrices++;
+                    }
+                });
+            }
+        }
+        
+        // Récupérer tous les items raffinés
+        const allRefinedItems = allRawItems.map(id => getRefinedId(id));
+        const refinedChunks = [];
+        for (let i = 0; i < allRefinedItems.length; i += chunkSize) {
+            refinedChunks.push(allRefinedItems.slice(i, i + chunkSize));
+        }
+        
+        // Traiter chaque lot d'items raffinés
+        for (const chunk of refinedChunks) {
+            const refinedUrl = `https://europe.albion-online-data.com/api/v2/stats/prices/${chunk.join(',')}.json?locations=${selectedCity}&qualities=1`;
             const refinedResponse = await fetch(proxyUrl + refinedUrl, {
                 headers: { 'Origin': window.location.origin }
             });
@@ -119,30 +165,37 @@ async function fetchAllPricesFromAPI() {
                         const price = Math.min(...item.sell_price_min.map(p => p.Price));
                         
                         // Trouver l'ID de base correspondant
-                        let baseId = itemId.replace('PLANKS', 'WOOD');
+                        let baseId = itemId;
+                        for (const [key, value] of Object.entries(REFINED_MAP)) {
+                            if (itemId.includes(value)) {
+                                baseId = itemId.replace(value, key);
+                                break;
+                            }
+                        }
                         
                         if (!currentPrices[baseId]) currentPrices[baseId] = {};
                         currentPrices[baseId].refined = price;
+                        totalPrices++;
                     }
                 });
-                
-                // Sauvegarder et mettre à jour l'affichage
-                savePrices();
-                renderResourceTable();
-                
-                const updateTime = document.getElementById('updateTime');
-                if (updateTime) {
-                    updateTime.textContent = new Date().toLocaleString('fr-FR') + ' (API)';
-                }
-                
-                showStatus('✓ Prix chargés depuis l\'API', 'success');
-                useApi = true;
             }
-        } else {
-            // Si l'API échoue, charger depuis le fichier JSON
-            console.log('API inaccessible, chargement depuis prices.json');
-            loadPricesFromFile();
         }
+        
+        if (totalPrices > 0) {
+            savePrices();
+            renderResourceTable();
+            
+            const updateTime = document.getElementById('updateTime');
+            if (updateTime) {
+                updateTime.textContent = new Date().toLocaleString('fr-FR') + ' (API)';
+            }
+            
+            showStatus(`✓ ${totalPrices} prix chargés depuis l'API`, 'success');
+            useApi = true;
+        } else {
+            throw new Error('Aucun prix récupéré');
+        }
+        
     } catch (error) {
         console.error('Erreur API:', error);
         showStatus('⚠️ API inaccessible - Chargement fichier local', 'warning');
