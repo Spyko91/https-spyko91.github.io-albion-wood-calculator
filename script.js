@@ -332,11 +332,9 @@ async function fetchAllPrices() {
     
     // Liste de proxies à essayer
     const proxies = [
-        '', // Direct
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest=',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors-anywhere.herokuapp.com/'
+        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url=',
+        'https://proxy.cors.sh/'
     ];
     
     const endpoints = [
