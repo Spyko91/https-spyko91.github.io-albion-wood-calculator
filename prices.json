@@ -1,0 +1,32 @@
+{
+  "lastUpdate": "2024-03-11 20:30",
+  "prices": {
+    "T2_WOOD": { "raw": 145, "refined": 298 },
+    "T3_WOOD": { "raw": 298, "refined": 895 },
+    "T4_WOOD": { "raw": 845, "refined": 2535 },
+    "T4_WOOD_LEVEL1": { "raw": 2535, "refined": 7605 },
+    "T4_WOOD_LEVEL2": { "raw": 7605, "refined": 22815 },
+    "T4_WOOD_LEVEL3": { "raw": 22815, "refined": 68445 },
+    "T4_WOOD_LEVEL4": { "raw": 68445, "refined": 205335 },
+    "T5_WOOD": { "raw": 2535, "refined": 7605 },
+    "T5_WOOD_LEVEL1": { "raw": 7605, "refined": 22815 },
+    "T5_WOOD_LEVEL2": { "raw": 22815, "refined": 68445 },
+    "T5_WOOD_LEVEL3": { "raw": 68445, "refined": 205335 },
+    "T5_WOOD_LEVEL4": { "raw": 205335, "refined": 616005 },
+    "T6_WOOD": { "raw": 7605, "refined": 22815 },
+    "T6_WOOD_LEVEL1": { "raw": 22815, "refined": 68445 },
+    "T6_WOOD_LEVEL2": { "raw": 68445, "refined": 205335 },
+    "T6_WOOD_LEVEL3": { "raw": 205335, "refined": 616005 },
+    "T6_WOOD_LEVEL4": { "raw": 616005, "refined": 1848015 },
+    "T7_WOOD": { "raw": 22815, "refined": 68445 },
+    "T7_WOOD_LEVEL1": { "raw": 68445, "refined": 205335 },
+    "T7_WOOD_LEVEL2": { "raw": 205335, "refined": 616005 },
+    "T7_WOOD_LEVEL3": { "raw": 616005, "refined": 1848015 },
+    "T7_WOOD_LEVEL4": { "raw": 1848015, "refined": 5544045 },
+    "T8_WOOD": { "raw": 68445, "refined": 205335 },
+    "T8_WOOD_LEVEL1": { "raw": 205335, "refined": 616005 },
+    "T8_WOOD_LEVEL2": { "raw": 616005, "refined": 1848015 },
+    "T8_WOOD_LEVEL3": { "raw": 1848015, "refined": 5544045 },
+    "T8_WOOD_LEVEL4": { "raw": 5544045, "refined": 16632135 }
+  }
+}
