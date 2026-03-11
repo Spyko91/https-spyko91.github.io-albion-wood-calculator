@@ -12,7 +12,7 @@ let currentResourceData = RESOURCES.wood;
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Initialisation...');
     
-    // 1️⃣ CHARGER LES PRIX SAUVEGARDÉS D'ABORD
+    // Charger les prix sauvegardés d'abord
     loadSavedPrices();
     
     showStatus('Chargement...', 'info');
@@ -20,12 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
     loadResource('wood');
     attachEventListeners();
     
-    // 2️⃣ PUIS CHARGER LE FICHIER JSON (en arrière-plan)
+    // Puis charger le fichier JSON
     loadPricesFromFile();
 });
 
 // ============================================
-// SAUVEGARDE LOCALE (NOUVEAU)
+// SAUVEGARDE LOCALE
 // ============================================
 function loadSavedPrices() {
     try {
@@ -45,7 +45,6 @@ function savePrices() {
         localStorage.setItem('albionPrices', JSON.stringify(currentPrices));
         console.log('💾 Prix sauvegardés localement');
         
-        // Afficher un petit indicateur visuel
         const saveIndicator = document.getElementById('save-indicator');
         if (saveIndicator) {
             saveIndicator.style.opacity = '1';
@@ -69,8 +68,7 @@ async function loadPricesFromFile() {
         const data = await response.json();
         
         if (data && data.prices) {
-            // Ne pas écraser les prix modifiés manuellement !
-            // On fusionne intelligemment
+            // Fusion intelligente sans écraser les prix modifiés
             Object.keys(data.prices).forEach(key => {
                 if (!currentPrices[key]) {
                     currentPrices[key] = data.prices[key];
@@ -91,7 +89,6 @@ async function loadPricesFromFile() {
         console.error('Erreur chargement prices.json:', error);
         showStatus('❌ Erreur chargement - Utilisation sauvegarde', 'error');
         
-        // Si currentPrices est vide ET que prices.json a échoué, on utilise FALLBACK
         if (Object.keys(currentPrices).length === 0) {
             loadFallbackPrices();
         } else {
@@ -103,7 +100,7 @@ async function loadPricesFromFile() {
 }
 
 // ============================================
-// PRIX DE SECOURS (si tout échoue)
+// PRIX DE SECOURS
 // ============================================
 function loadFallbackPrices() {
     Object.keys(RESOURCES).forEach(resourceKey => {
@@ -117,7 +114,43 @@ function loadFallbackPrices() {
         });
     });
     renderResourceTable();
-    savePrices(); // Sauvegarder les prix de secours aussi
+    savePrices();
+}
+
+// ============================================
+// TEST API EUROPE (NOUVEAU)
+// ============================================
+async function testEuropeAPI() {
+    try {
+        showStatus('🧪 Test API Europe...', 'info');
+        
+        const url = 'https://europe.albion-online-data.com/api/v2/stats/prices/T4_WOOD.json?locations=Thetford&qualities=1';
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        
+        console.log('Test API:', proxyUrl);
+        
+        const response = await fetch(proxyUrl);
+        const data = await response.json();
+        
+        console.log('✅ Réponse API Europe:', data);
+        
+        if (data && data.length > 0) {
+            const prixAchat = Math.min(...data[0].sell_price_min.map(p => p.Price));
+            const prixVente = Math.max(...data[0].sell_price_max.map(p => p.Price));
+            
+            alert(`✅ API Europe OK !\n\nT4 Bois à Thetford:\n💰 Prix achat: ${prixAchat} silver\n💰 Prix vente: ${prixVente} silver`);
+            showStatus('✓ Test API réussi', 'success');
+        } else {
+            alert('❌ Pas de données reçues');
+            showStatus('❌ Test échoué', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        alert('❌ Échec de la connexion à l\'API Europe');
+        showStatus('❌ Erreur de connexion', 'error');
+    } finally {
+        clearStatusAfterDelay();
+    }
 }
 
 // ============================================
@@ -211,15 +244,21 @@ function renderResourceTable() {
 }
 
 // ============================================
-// UTILITAIRES
+// CLASSES CSS POUR ENCHANTEMENTS
 // ============================================
 function getEnchantClass(enchant) {
-    const classes = { '.0': 'enchant-0', '.1': 'enchant-1', '.2': 'enchant-2', '.3': 'enchant-3', '.4': 'enchant-4' };
+    const classes = {
+        '.0': 'enchant-0',
+        '.1': 'enchant-1',
+        '.2': 'enchant-2',
+        '.3': 'enchant-3',
+        '.4': 'enchant-4'
+    };
     return classes[enchant] || '';
 }
 
 // ============================================
-// MISE À JOUR DES CALCULS (avec sauvegarde)
+// MISE À JOUR DES CALCULS
 // ============================================
 function updateCalculations() {
     const resource = this.dataset.resource;
@@ -233,7 +272,7 @@ function updateCalculations() {
     if (!currentPrices[key]) currentPrices[key] = {};
     currentPrices[key][type] = value;
     
-    // 💾 SAUVEGARDER APRÈS CHAQUE MODIFICATION
+    // Sauvegarder après chaque modification
     savePrices();
     
     const rawPrice = currentPrices[key]?.raw || 0;
@@ -260,6 +299,9 @@ function updateCalculations() {
     updateTotalProfit();
 }
 
+// ============================================
+// MISE À JOUR DU TOTAL
+// ============================================
 function updateTotalProfit() {
     let total = 0;
     currentResourceData.items.forEach((item, index) => {
@@ -276,6 +318,9 @@ function updateTotalProfit() {
     if (totalElement) totalElement.textContent = total.toLocaleString();
 }
 
+// ============================================
+// AFFICHAGE DES STATUTS
+// ============================================
 function showStatus(message, type = 'info') {
     const statusDiv = document.getElementById('api-status');
     if (statusDiv) {
@@ -287,18 +332,6 @@ function showStatus(message, type = 'info') {
 function showLoading(show) {
     const loading = document.getElementById('loading');
     if (loading) loading.style.display = show ? 'block' : 'none';
-}
-
-function updateTabs() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.resource === selectedResource);
-    });
-}
-
-function attachEventListeners() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => loadResource(e.target.dataset.resource));
-    });
 }
 
 function clearStatusAfterDelay() {
@@ -318,26 +351,20 @@ function clearStatusAfterDelay() {
     requestAnimationFrame(fadeOut);
 }
 
-async function testEuropeAPI() {
-    try {
-        const url = 'https://europe.albion-online-data.com/api/v2/stats/prices/T4_WOOD.json?locations=Thetford&qualities=1';
-        
-        // Utilisation de corsproxy.io (le même qui fonctionnait avant)
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-        
-        console.log('✅ Réponse API Europe:', data);
-        
-        if (data && data.length > 0) {
-            const prixAchat = Math.min(...data[0].sell_price_min.map(p => p.Price));
-            const prixVente = Math.min(...data[0].sell_price_max.map(p => p.Price));
-            
-            alert(`T4 Bois à Thetford:\nPrix achat: ${prixAchat}\nPrix vente: ${prixVente}`);
-        }
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        alert('Échec de la connexion à l\'API Europe');
-    }
+// ============================================
+// GESTION DES ONGLETS
+// ============================================
+function updateTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.resource === selectedResource);
+    });
+}
+
+// ============================================
+// ÉVÉNEMENTS
+// ============================================
+function attachEventListeners() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => loadResource(e.target.dataset.resource));
+    });
 }
