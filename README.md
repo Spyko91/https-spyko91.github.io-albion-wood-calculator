@@ -1,1 +1,1 @@
-https://spyko91.github.io/albion-ressources-calculator/
+https://spyko91.github.io/https-spyko91.github.io-albion-ressources-calculator/
