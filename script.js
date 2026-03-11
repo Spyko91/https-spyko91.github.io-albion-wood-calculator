@@ -11,12 +11,52 @@ let currentResourceData = RESOURCES.wood;
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Initialisation...');
-    showStatus('Chargement des prix...', 'info');
+    
+    // 1️⃣ CHARGER LES PRIX SAUVEGARDÉS D'ABORD
+    loadSavedPrices();
+    
+    showStatus('Chargement...', 'info');
     
     loadResource('wood');
     attachEventListeners();
+    
+    // 2️⃣ PUIS CHARGER LE FICHIER JSON (en arrière-plan)
     loadPricesFromFile();
 });
+
+// ============================================
+// SAUVEGARDE LOCALE (NOUVEAU)
+// ============================================
+function loadSavedPrices() {
+    try {
+        const saved = localStorage.getItem('albionPrices');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            currentPrices = parsed;
+            console.log('📦 Prix chargés depuis la sauvegarde locale');
+        }
+    } catch (e) {
+        console.log('Erreur chargement sauvegarde:', e);
+    }
+}
+
+function savePrices() {
+    try {
+        localStorage.setItem('albionPrices', JSON.stringify(currentPrices));
+        console.log('💾 Prix sauvegardés localement');
+        
+        // Afficher un petit indicateur visuel
+        const saveIndicator = document.getElementById('save-indicator');
+        if (saveIndicator) {
+            saveIndicator.style.opacity = '1';
+            setTimeout(() => {
+                saveIndicator.style.opacity = '0';
+            }, 1000);
+        }
+    } catch (e) {
+        console.log('Erreur sauvegarde:', e);
+    }
+}
 
 // ============================================
 // CHARGEMENT DES PRIX DEPUIS LE FICHIER JSON
@@ -29,7 +69,14 @@ async function loadPricesFromFile() {
         const data = await response.json();
         
         if (data && data.prices) {
-            currentPrices = data.prices;
+            // Ne pas écraser les prix modifiés manuellement !
+            // On fusionne intelligemment
+            Object.keys(data.prices).forEach(key => {
+                if (!currentPrices[key]) {
+                    currentPrices[key] = data.prices[key];
+                }
+            });
+            
             renderResourceTable();
             
             const updateTime = document.getElementById('updateTime');
@@ -38,48 +85,39 @@ async function loadPricesFromFile() {
             }
             
             showStatus(`✓ Prix chargés (${Object.keys(currentPrices).length} ressources)`, 'success');
-            // Suppression du setTimeout pour le message
             clearStatusAfterDelay();
         }
     } catch (error) {
         console.error('Erreur chargement prices.json:', error);
-        showStatus('❌ Erreur chargement - Utilisation prix par défaut', 'error');
+        showStatus('❌ Erreur chargement - Utilisation sauvegarde', 'error');
         
-        // Fallback direct sans setTimeout
-        Object.keys(RESOURCES).forEach(resourceKey => {
-            RESOURCES[resourceKey].items.forEach(item => {
-                const fallback = FALLBACK_PRICES[item.itemId];
-                if (fallback) {
-                    if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
-                    currentPrices[item.itemId].raw = fallback.raw;
-                    currentPrices[item.itemId].refined = fallback.refined;
-                }
-            });
-        });
-        renderResourceTable();
+        // Si currentPrices est vide ET que prices.json a échoué, on utilise FALLBACK
+        if (Object.keys(currentPrices).length === 0) {
+            loadFallbackPrices();
+        } else {
+            renderResourceTable();
+        }
     } finally {
         showLoading(false);
     }
 }
 
-// Fonction pour effacer le message après 3 secondes (sans setTimeout avec string)
-function clearStatusAfterDelay() {
-    // On utilise un compteur basé sur requestAnimationFrame plutôt que setTimeout
-    let start = null;
-    const duration = 3000; // 3 secondes
-    
-    function fadeOut(timestamp) {
-        if (!start) start = timestamp;
-        const elapsed = timestamp - start;
-        
-        if (elapsed < duration) {
-            requestAnimationFrame(fadeOut);
-        } else {
-            showStatus('', 'info');
-        }
-    }
-    
-    requestAnimationFrame(fadeOut);
+// ============================================
+// PRIX DE SECOURS (si tout échoue)
+// ============================================
+function loadFallbackPrices() {
+    Object.keys(RESOURCES).forEach(resourceKey => {
+        RESOURCES[resourceKey].items.forEach(item => {
+            const fallback = FALLBACK_PRICES[item.itemId];
+            if (fallback) {
+                if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
+                currentPrices[item.itemId].raw = fallback.raw;
+                currentPrices[item.itemId].refined = fallback.refined;
+            }
+        });
+    });
+    renderResourceTable();
+    savePrices(); // Sauvegarder les prix de secours aussi
 }
 
 // ============================================
@@ -180,6 +218,9 @@ function getEnchantClass(enchant) {
     return classes[enchant] || '';
 }
 
+// ============================================
+// MISE À JOUR DES CALCULS (avec sauvegarde)
+// ============================================
 function updateCalculations() {
     const resource = this.dataset.resource;
     const index = parseInt(this.dataset.index);
@@ -191,6 +232,9 @@ function updateCalculations() {
     
     if (!currentPrices[key]) currentPrices[key] = {};
     currentPrices[key][type] = value;
+    
+    // 💾 SAUVEGARDER APRÈS CHAQUE MODIFICATION
+    savePrices();
     
     const rawPrice = currentPrices[key]?.raw || 0;
     const refinedPrice = currentPrices[key]?.refined || 0;
@@ -255,4 +299,21 @@ function attachEventListeners() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', (e) => loadResource(e.target.dataset.resource));
     });
+}
+
+function clearStatusAfterDelay() {
+    let start = null;
+    const duration = 3000;
+    
+    function fadeOut(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        
+        if (elapsed < duration) {
+            requestAnimationFrame(fadeOut);
+        } else {
+            showStatus('', 'info');
+        }
+    }
+    requestAnimationFrame(fadeOut);
 }
