@@ -4,27 +4,65 @@
 let currentPrices = {};
 let selectedCity = 'Thetford';
 let selectedResource = 'wood';
-let useFallback = false;
 let currentResourceData = RESOURCES.wood;
-let apiAttempts = 0;
 
 // ============================================
 // INITIALISATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Initialisation du calculateur multi-ressources...');
+    console.log('🚀 Initialisation...');
+    showStatus('Chargement des prix...', 'info');
     
-    showStatus('Initialisation...', 'info');
-    
-    // Charger la ressource par défaut
     loadResource('wood');
-    
-    // Attacher les événements
     attachEventListeners();
-    
-    // Charger les prix
-    initializePrices();
+    loadPricesFromFile();
 });
+
+// ============================================
+// CHARGEMENT DES PRIX DEPUIS LE FICHIER JSON
+// ============================================
+async function loadPricesFromFile() {
+    showLoading(true);
+    
+    try {
+        // Charger le fichier prices.json
+        const response = await fetch('prices.json');
+        const data = await response.json();
+        
+        if (data && data.prices) {
+            currentPrices = data.prices;
+            
+            // Mettre à jour l'affichage
+            renderResourceTable();
+            
+            const updateTime = document.getElementById('updateTime');
+            if (updateTime) {
+                updateTime.textContent = data.lastUpdate || new Date().toLocaleString('fr-FR');
+            }
+            
+            showStatus(`✓ Prix chargés (${Object.keys(currentPrices).length} ressources)`, 'success');
+            setTimeout(() => showStatus('', 'info'), 3000);
+        }
+    } catch (error) {
+        console.error('Erreur chargement prices.json:', error);
+        showStatus('❌ Erreur chargement - Utilisation prix par défaut', 'error');
+        
+        // Fallback sur FALLBACK_PRICES
+        Object.keys(RESOURCES).forEach(resourceKey => {
+            RESOURCES[resourceKey].items.forEach(item => {
+                const fallback = FALLBACK_PRICES[item.itemId];
+                if (fallback) {
+                    if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
+                    currentPrices[item.itemId].raw = fallback.raw;
+                    currentPrices[item.itemId].refined = fallback.refined;
+                }
+            });
+        });
+        renderResourceTable();
+    } finally {
+        showLoading(false);
+    }
+}
 
 // ============================================
 // CHARGEMENT D'UNE RESSOURCE
@@ -33,10 +71,8 @@ function loadResource(resourceKey) {
     selectedResource = resourceKey;
     currentResourceData = RESOURCES[resourceKey];
     
-    // Mettre à jour le titre
     document.querySelector('h1').innerHTML = `${currentResourceData.icon} Calculateur de ${currentResourceData.name} - Albion Online`;
     
-    // Mettre à jour la ville par défaut
     const citySelect = document.getElementById('city');
     if (citySelect) {
         const defaultCity = currentResourceData.city;
@@ -47,10 +83,7 @@ function loadResource(resourceKey) {
         }
     }
     
-    // Afficher le tableau
     renderResourceTable();
-    
-    // Mettre à jour les onglets
     updateTabs();
 }
 
@@ -67,13 +100,12 @@ function renderResourceTable() {
                 <tr>
                     <th>Tier</th>
                     <th>Enchant</th>
-                    <th>Qté<br>nécessaire</th>
+                    <th>Qté</th>
                     <th>Prix achat<br>(${currentResourceData.rawName})</th>
-                    <th>Prix total<br>brut</th>
+                    <th>Prix total</th>
                     <th>Prix vente<br>(${currentResourceData.refinedName})</th>
                     <th>Marge</th>
                     <th>Profit</th>
-                    <th></th>
                 </tr>
             </thead>
             <tbody id="resource-table-body">
@@ -85,20 +117,18 @@ function renderResourceTable() {
         const totalCost = rawPrice ? rawPrice * item.quantity : '';
         const profit = (rawPrice && refinedPrice) ? refinedPrice - totalCost : '';
         const margin = (rawPrice && refinedPrice && totalCost > 0) ? ((profit / totalCost) * 100).toFixed(1) : '';
-        
         const enchantClass = getEnchantClass(item.enchant);
         
         html += `
-            <tr class="tier-${item.tier}" data-resource-index="${index}">
+            <tr class="tier-${item.tier}">
                 <td><strong>${item.tier}</strong></td>
                 <td class="${enchantClass}"><strong>${item.enchant}</strong></td>
                 <td>${item.quantity}</td>
-                <td><input type="number" class="price-input raw-price" data-resource="${selectedResource}" data-index="${index}" value="${rawPrice || ''}" placeholder="0" step="1" min="0"></td>
+                <td><input type="number" class="price-input raw-price" data-resource="${selectedResource}" data-index="${index}" value="${rawPrice || ''}" placeholder="0" min="0" step="1"></td>
                 <td class="total-cost" data-resource="${selectedResource}" data-index="${index}">${totalCost ? totalCost.toLocaleString() : '-'}</td>
-                <td><input type="number" class="price-input refined-price" data-resource="${selectedResource}" data-index="${index}" value="${refinedPrice || ''}" placeholder="0" step="1" min="0"></td>
+                <td><input type="number" class="price-input refined-price" data-resource="${selectedResource}" data-index="${index}" value="${refinedPrice || ''}" placeholder="0" min="0" step="1"></td>
                 <td class="margin ${profit > 0 ? 'profit-positive' : profit < 0 ? 'profit-negative' : ''}" data-resource="${selectedResource}" data-index="${index}">${margin ? margin + '%' : '-'}</td>
                 <td class="profit ${profit > 0 ? 'profit-positive' : profit < 0 ? 'profit-negative' : ''}" data-resource="${selectedResource}" data-index="${index}">${profit ? profit.toLocaleString() : '-'}</td>
-                <td><button class="btn-small update-row" data-resource="${selectedResource}" data-index="${index}" ${useFallback ? 'disabled' : ''}>↺</button></td>
             </tr>
         `;
     });
@@ -107,7 +137,7 @@ function renderResourceTable() {
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="7" class="total-label">TOTAL PROFIT POTENTIEL (${currentResourceData.name}):</td>
+                    <td colspan="6" class="total-label">TOTAL PROFIT (${currentResourceData.name}):</td>
                     <td id="total-profit" class="total-value">0</td>
                     <td></td>
                 </tr>
@@ -117,44 +147,21 @@ function renderResourceTable() {
     
     container.innerHTML = html;
     
-    // Attacher les événements
     document.querySelectorAll('.price-input').forEach(input => {
         input.addEventListener('change', updateCalculations);
-    });
-    
-    document.querySelectorAll('.update-row').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const resource = e.target.dataset.resource;
-            const index = e.target.dataset.index;
-            if (useFallback) {
-                showStatus('Mode démo : modification manuelle uniquement', 'warning');
-                setTimeout(() => showStatus('', 'info'), 3000);
-            } else {
-                updateSingleRow(resource, index);
-            }
-        });
     });
     
     updateTotalProfit();
 }
 
 // ============================================
-// CLASSES CSS POUR ENCHANTEMENTS
+// UTILITAIRES
 // ============================================
 function getEnchantClass(enchant) {
-    const classes = {
-        '.0': 'enchant-0',
-        '.1': 'enchant-1',
-        '.2': 'enchant-2',
-        '.3': 'enchant-3',
-        '.4': 'enchant-4'
-    };
+    const classes = { '.0': 'enchant-0', '.1': 'enchant-1', '.2': 'enchant-2', '.3': 'enchant-3', '.4': 'enchant-4' };
     return classes[enchant] || '';
 }
 
-// ============================================
-// MISE À JOUR DES CALCULS
-// ============================================
 function updateCalculations() {
     const resource = this.dataset.resource;
     const index = parseInt(this.dataset.index);
@@ -164,24 +171,17 @@ function updateCalculations() {
     const item = RESOURCES[resource].items[index];
     const key = item.itemId;
     
-    if (!currentPrices[key]) {
-        currentPrices[key] = {};
-    }
-    
+    if (!currentPrices[key]) currentPrices[key] = {};
     currentPrices[key][type] = value;
     
-    // Recalculer
     const rawPrice = currentPrices[key]?.raw || 0;
     const refinedPrice = currentPrices[key]?.refined || 0;
     const totalCost = rawPrice * item.quantity;
     const profit = refinedPrice - totalCost;
     const margin = totalCost > 0 ? ((profit / totalCost) * 100).toFixed(1) : '';
     
-    // Mettre à jour l'affichage
     const totalCostCell = document.querySelector(`.total-cost[data-resource="${resource}"][data-index="${index}"]`);
-    if (totalCostCell) {
-        totalCostCell.textContent = totalCost ? totalCost.toLocaleString() : '-';
-    }
+    if (totalCostCell) totalCostCell.textContent = totalCost ? totalCost.toLocaleString() : '-';
     
     const marginCell = document.querySelector(`.margin[data-resource="${resource}"][data-index="${index}"]`);
     if (marginCell) {
@@ -198,28 +198,8 @@ function updateCalculations() {
     updateTotalProfit();
 }
 
-// ============================================
-// FORMATAGE DES IDs POUR L'API
-// ============================================
-function getApiItemId(baseId, type) {
-    if (type === 'raw') {
-        return baseId;
-    } else {
-        // Conversion pour les items raffinés
-        return baseId.replace('WOOD', 'PLANKS')
-                     .replace('ROCK', 'BLOCK')
-                     .replace('ORE', 'METALBAR')
-                     .replace('HIDE', 'LEATHER')
-                     .replace('FIBER', 'CLOTH');
-    }
-}
-
-// ============================================
-// MISE À JOUR DU TOTAL
-// ============================================
 function updateTotalProfit() {
     let total = 0;
-    
     currentResourceData.items.forEach((item, index) => {
         const profitCell = document.querySelector(`.profit[data-resource="${selectedResource}"][data-index="${index}"]`);
         if (profitCell) {
@@ -230,246 +210,10 @@ function updateTotalProfit() {
             }
         }
     });
-    
     const totalElement = document.getElementById('total-profit');
-    if (totalElement) {
-        totalElement.textContent = total.toLocaleString();
-    }
+    if (totalElement) totalElement.textContent = total.toLocaleString();
 }
 
-// ============================================
-// CHARGEMENT DES PRIX DE SECOURS
-// ============================================
-function loadFallbackPrices() {
-    useFallback = true;
-    showLoading(true);
-    
-    setTimeout(() => {
-        // Charger tous les prix de secours
-        Object.keys(RESOURCES).forEach(resourceKey => {
-            RESOURCES[resourceKey].items.forEach(item => {
-                const fallback = FALLBACK_PRICES[item.itemId];
-                if (fallback) {
-                    if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
-                    currentPrices[item.itemId].raw = fallback.raw;
-                    currentPrices[item.itemId].refined = fallback.refined;
-                }
-            });
-        });
-        
-        // Rafraîchir l'affichage
-        renderResourceTable();
-        
-        const updateTime = document.getElementById('updateTime');
-        if (updateTime) {
-            updateTime.textContent = new Date().toLocaleTimeString('fr-FR') + ' (prix de référence)';
-        }
-        
-        showStatus('⚠️ Mode démo - Prix de référence', 'warning');
-        showLoading(false);
-    }, 500);
-}
-
-// ============================================
-// RÉCUPÉRATION DES PRIX API - VERSION AVEC CORSPROXY.IO
-// ============================================
-async function fetchAllPrices() {
-    showLoading(true);
-    showStatus('Connexion à l\'API Albion...', 'info');
-    apiAttempts++;
-    
-    // Collecter tous les IDs uniques (limité à 30 pour éviter timeout)
-    const allIds = [];
-    const idMap = {};
-    let count = 0;
-    
-    Object.keys(RESOURCES).forEach(resourceKey => {
-        RESOURCES[resourceKey].items.forEach(item => {
-            if (count < 30) { // Limite pour pas surcharger
-                const rawId = getApiItemId(item.itemId, 'raw');
-                const refinedId = getApiItemId(item.itemId, 'refined');
-                
-                if (!allIds.includes(rawId)) {
-                    allIds.push(rawId);
-                    idMap[rawId] = { itemId: item.itemId, type: 'raw' };
-                }
-                if (!allIds.includes(refinedId)) {
-                    allIds.push(refinedId);
-                    idMap[refinedId] = { itemId: item.itemId, type: 'refined' };
-                }
-                count++;
-            }
-        });
-    });
-    
-    // Construction de l'URL API directe
-    const itemsParam = allIds.join(',');
-    const cityParam = API_CONFIG.cities[selectedCity] || 'Thetford';
-    const apiUrl = `https://www.albion-online-data.com/api/v2/stats/prices/${itemsParam}?locations=${cityParam}&qualities=1`;
-    
-    // Utilisation de corsproxy.io (fiable et gratuit)
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-    
-    try {
-        console.log('🌐 Tentative API via corsproxy.io:', proxyUrl);
-        showStatus(`Tentative ${apiAttempts}...`, 'info');
-        
-        const response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: { 
-                'Accept': 'application/json'
-            },
-            mode: 'cors',
-            cache: 'no-cache'
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Réponse API reçue:', data.length, 'éléments');
-            
-            if (data && data.length > 0) {
-                let priceCount = 0;
-                
-                data.forEach(priceData => {
-                    const itemInfo = idMap[priceData.item_id];
-                    if (itemInfo && priceData.sell_price_min && priceData.sell_price_min.length > 0) {
-                        // Prendre le prix minimum de vente
-                        const price = Math.min(...priceData.sell_price_min.map(p => p.Price));
-                        
-                        if (price > 0) {
-                            if (!currentPrices[itemInfo.itemId]) {
-                                currentPrices[itemInfo.itemId] = {};
-                            }
-                            currentPrices[itemInfo.itemId][itemInfo.type] = price;
-                            priceCount++;
-                        }
-                    }
-                });
-                
-                console.log(`💰 ${priceCount} prix récupérés`);
-                
-                if (priceCount > 0) {
-                    // Mettre à jour l'affichage
-                    renderResourceTable();
-                    
-                    const updateTime = document.getElementById('updateTime');
-                    if (updateTime) {
-                        updateTime.textContent = new Date().toLocaleTimeString('fr-FR');
-                    }
-                    
-                    useFallback = false;
-                    showStatus(`✓ ${priceCount} prix récupérés`, 'success');
-                    setTimeout(() => showStatus('', 'info'), 3000);
-                    
-                    showLoading(false);
-                    return;
-                }
-            }
-        }
-        
-        // Si on arrive ici, ça n'a pas fonctionné
-        throw new Error('Réponse API invalide ou vide');
-        
-    } catch (error) {
-        console.error('❌ Erreur API:', error);
-        showStatus('❌ API inaccessible - Passage en mode démo', 'error');
-        loadFallbackPrices();
-        showLoading(false);
-    }
-}
-
-// ============================================
-// MISE À JOUR D'UNE LIGNE SPÉCIFIQUE
-// ============================================
-async function updateSingleRow(resource, index) {
-    const item = RESOURCES[resource].items[index];
-    const itemIds = [getApiItemId(item.itemId, 'raw'), getApiItemId(item.itemId, 'refined')];
-    
-    showLoading(true);
-    showStatus(`Récupération des prix pour ${item.tier}${item.enchant}...`, 'info');
-    
-    // Utilisation de corsproxy.io pour une seule ligne aussi
-    const itemsParam = itemIds.join(',');
-    const cityParam = API_CONFIG.cities[selectedCity] || 'Thetford';
-    const apiUrl = `https://www.albion-online-data.com/api/v2/stats/prices/${itemsParam}?locations=${cityParam}&qualities=1`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
-    
-    try {
-        const response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-            mode: 'cors'
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data && data.length > 0) {
-                let updated = false;
-                
-                const rawData = data.find(p => p.item_id === getApiItemId(item.itemId, 'raw'));
-                const refinedData = data.find(p => p.item_id === getApiItemId(item.itemId, 'refined'));
-                
-                if (rawData && rawData.sell_price_min && rawData.sell_price_min.length > 0) {
-                    const price = Math.min(...rawData.sell_price_min.map(p => p.Price));
-                    const input = document.querySelector(`.raw-price[data-resource="${resource}"][data-index="${index}"]`);
-                    if (input) {
-                        input.value = price || 0;
-                        updated = true;
-                    }
-                    if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
-                    currentPrices[item.itemId].raw = price || 0;
-                }
-                
-                if (refinedData && refinedData.sell_price_min && refinedData.sell_price_min.length > 0) {
-                    const price = Math.min(...refinedData.sell_price_min.map(p => p.Price));
-                    const input = document.querySelector(`.refined-price[data-resource="${resource}"][data-index="${index}"]`);
-                    if (input) {
-                        input.value = price || 0;
-                        updated = true;
-                    }
-                    if (!currentPrices[item.itemId]) currentPrices[item.itemId] = {};
-                    currentPrices[item.itemId].refined = price || 0;
-                }
-                
-                if (updated) {
-                    // Déclencher le recalcul
-                    const rawInput = document.querySelector(`.raw-price[data-resource="${resource}"][data-index="${index}"]`);
-                    const refinedInput = document.querySelector(`.refined-price[data-resource="${resource}"][data-index="${index}"]`);
-                    
-                    if (rawInput) rawInput.dispatchEvent(new Event('change'));
-                    if (refinedInput) refinedInput.dispatchEvent(new Event('change'));
-                    
-                    showStatus(`✓ Prix mis à jour`, 'success');
-                    setTimeout(() => showStatus('', 'info'), 2000);
-                    
-                    showLoading(false);
-                    return;
-                }
-            }
-        }
-        
-        // Si on arrive ici, échec
-        throw new Error('Échec de la récupération');
-        
-    } catch (error) {
-        console.error('Erreur updateSingleRow:', error);
-        showStatus('❌ Échec de la récupération', 'error');
-        showLoading(false);
-    }
-}
-
-// ============================================
-// INITIALISATION DES PRIX
-// ============================================
-async function initializePrices() {
-    showLoading(true);
-    await fetchAllPrices();
-}
-
-// ============================================
-// AFFICHAGE DES STATUTS
-// ============================================
 function showStatus(message, type = 'info') {
     const statusDiv = document.getElementById('api-status');
     if (statusDiv) {
@@ -480,48 +224,17 @@ function showStatus(message, type = 'info') {
 
 function showLoading(show) {
     const loading = document.getElementById('loading');
-    if (loading) {
-        loading.style.display = show ? 'block' : 'none';
-    }
+    if (loading) loading.style.display = show ? 'block' : 'none';
 }
 
-// ============================================
-// GESTION DES ONGLETS
-// ============================================
 function updateTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        const resource = btn.dataset.resource;
-        if (resource === selectedResource) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
+        btn.classList.toggle('active', btn.dataset.resource === selectedResource);
     });
 }
 
-// ============================================
-// ÉVÉNEMENTS
-// ============================================
 function attachEventListeners() {
-    // Onglets
     document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const resource = e.target.dataset.resource;
-            loadResource(resource);
-        });
-    });
-    
-    // Rafraîchissement
-    document.getElementById('refreshPrices').addEventListener('click', () => {
-        apiAttempts = 0;
-        fetchAllPrices();
-    });
-    
-    // Changement de ville
-    document.getElementById('city').addEventListener('change', (e) => {
-        selectedCity = e.target.value;
-        if (!useFallback) {
-            fetchAllPrices();
-        }
+        btn.addEventListener('click', (e) => loadResource(e.target.dataset.resource));
     });
 }
