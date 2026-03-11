@@ -1,6 +1,6 @@
 // ============================================
 // DONNÉES DE TOUTES LES RESSOURCES - ALBION ONLINE
-// Version épurée - sans noms individuels
+// Version avec villes personnalisées
 // ============================================
 
 const RESOURCES = {
@@ -8,39 +8,32 @@ const RESOURCES = {
     wood: {
         name: 'Bois',
         icon: '🌲',
-        city: 'Thetford',
+        city: 'Fort Sterling', // 👈 Changé de Thetford à Fort Sterling
         rawName: 'Bûche',
         refinedName: 'Planche',
         items: [
-            // T2
             { tier: 'T2', enchant: '.0', itemId: 'T2_WOOD', quantity: 1 },
-            // T3
             { tier: 'T3', enchant: '.0', itemId: 'T3_WOOD', quantity: 2 },
-            // T4
             { tier: 'T4', enchant: '.0', itemId: 'T4_WOOD', quantity: 2 },
             { tier: 'T4', enchant: '.1', itemId: 'T4_WOOD_LEVEL1', quantity: 2 },
             { tier: 'T4', enchant: '.2', itemId: 'T4_WOOD_LEVEL2', quantity: 2 },
             { tier: 'T4', enchant: '.3', itemId: 'T4_WOOD_LEVEL3', quantity: 2 },
             { tier: 'T4', enchant: '.4', itemId: 'T4_WOOD_LEVEL4', quantity: 2 },
-            // T5
             { tier: 'T5', enchant: '.0', itemId: 'T5_WOOD', quantity: 3 },
             { tier: 'T5', enchant: '.1', itemId: 'T5_WOOD_LEVEL1', quantity: 3 },
             { tier: 'T5', enchant: '.2', itemId: 'T5_WOOD_LEVEL2', quantity: 3 },
             { tier: 'T5', enchant: '.3', itemId: 'T5_WOOD_LEVEL3', quantity: 3 },
             { tier: 'T5', enchant: '.4', itemId: 'T5_WOOD_LEVEL4', quantity: 3 },
-            // T6
             { tier: 'T6', enchant: '.0', itemId: 'T6_WOOD', quantity: 4 },
             { tier: 'T6', enchant: '.1', itemId: 'T6_WOOD_LEVEL1', quantity: 4 },
             { tier: 'T6', enchant: '.2', itemId: 'T6_WOOD_LEVEL2', quantity: 4 },
             { tier: 'T6', enchant: '.3', itemId: 'T6_WOOD_LEVEL3', quantity: 4 },
             { tier: 'T6', enchant: '.4', itemId: 'T6_WOOD_LEVEL4', quantity: 4 },
-            // T7
             { tier: 'T7', enchant: '.0', itemId: 'T7_WOOD', quantity: 5 },
             { tier: 'T7', enchant: '.1', itemId: 'T7_WOOD_LEVEL1', quantity: 5 },
             { tier: 'T7', enchant: '.2', itemId: 'T7_WOOD_LEVEL2', quantity: 5 },
             { tier: 'T7', enchant: '.3', itemId: 'T7_WOOD_LEVEL3', quantity: 5 },
             { tier: 'T7', enchant: '.4', itemId: 'T7_WOOD_LEVEL4', quantity: 5 },
-            // T8
             { tier: 'T8', enchant: '.0', itemId: 'T8_WOOD', quantity: 5 },
             { tier: 'T8', enchant: '.1', itemId: 'T8_WOOD_LEVEL1', quantity: 5 },
             { tier: 'T8', enchant: '.2', itemId: 'T8_WOOD_LEVEL2', quantity: 5 },
@@ -53,7 +46,7 @@ const RESOURCES = {
     stone: {
         name: 'Pierre',
         icon: '🪨',
-        city: 'Fort Sterling',
+        city: 'Bridgewatch', // 👈 Changé de Fort Sterling à Bridgewatch
         rawName: 'Bloc',
         refinedName: 'Pierre taillée',
         items: [
@@ -91,7 +84,7 @@ const RESOURCES = {
     ore: {
         name: 'Minerai',
         icon: '⛏️',
-        city: 'Bridgewatch',
+        city: 'Thetford', // 👈 Changé de Bridgewatch à Thetford
         rawName: 'Minerai',
         refinedName: 'Lingot',
         items: [
@@ -129,7 +122,7 @@ const RESOURCES = {
     hide: {
         name: 'Cuir',
         icon: '🦌',
-        city: 'Lymhurst',
+        city: 'Martlock', // 👈 Changé de Lymhurst à Martlock
         rawName: 'Peau',
         refinedName: 'Cuir',
         items: [
@@ -167,7 +160,7 @@ const RESOURCES = {
     fiber: {
         name: 'Fibre',
         icon: '🌿',
-        city: 'Thetford',
+        city: 'Lymhurst', // 👈 Changé de Thetford à Lymhurst
         rawName: 'Fibre',
         refinedName: 'Tissu',
         items: [
@@ -203,7 +196,7 @@ const RESOURCES = {
 };
 
 // ============================================
-// CONFIGURATION API
+// CONFIGURATION API (inchangée)
 // ============================================
 const API_CONFIG = {
     corsProxies: [
@@ -229,37 +222,37 @@ const API_CONFIG = {
 };
 
 // ============================================
-// PRIX DE SECOURS (avec .4 inclus)
+// PRIX DE SECOURS (inchangé)
 // ============================================
 const FALLBACK_PRICES = {
     // Bois
-    'T2_WOOD': { raw: 150, refined: 300 },
-    'T3_WOOD': { raw: 300, refined: 900 },
-    'T4_WOOD': { raw: 850, refined: 2550 },
-    'T4_WOOD_LEVEL1': { raw: 2550, refined: 7650 },
-    'T4_WOOD_LEVEL2': { raw: 7650, refined: 22950 },
-    'T4_WOOD_LEVEL3': { raw: 22950, refined: 68850 },
-    'T4_WOOD_LEVEL4': { raw: 68850, refined: 206550 },
-    'T5_WOOD': { raw: 2550, refined: 7650 },
-    'T5_WOOD_LEVEL1': { raw: 7650, refined: 22950 },
-    'T5_WOOD_LEVEL2': { raw: 22950, refined: 68850 },
-    'T5_WOOD_LEVEL3': { raw: 68850, refined: 206550 },
-    'T5_WOOD_LEVEL4': { raw: 206550, refined: 619650 },
-    'T6_WOOD': { raw: 7650, refined: 22950 },
-    'T6_WOOD_LEVEL1': { raw: 22950, refined: 68850 },
-    'T6_WOOD_LEVEL2': { raw: 68850, refined: 206550 },
-    'T6_WOOD_LEVEL3': { raw: 206550, refined: 619650 },
-    'T6_WOOD_LEVEL4': { raw: 619650, refined: 1858950 },
-    'T7_WOOD': { raw: 22950, refined: 68850 },
-    'T7_WOOD_LEVEL1': { raw: 68850, refined: 206550 },
-    'T7_WOOD_LEVEL2': { raw: 206550, refined: 619650 },
-    'T7_WOOD_LEVEL3': { raw: 619650, refined: 1858950 },
-    'T7_WOOD_LEVEL4': { raw: 1858950, refined: 5576850 },
-    'T8_WOOD': { raw: 68850, refined: 206550 },
-    'T8_WOOD_LEVEL1': { raw: 206550, refined: 619650 },
-    'T8_WOOD_LEVEL2': { raw: 619650, refined: 1858950 },
-    'T8_WOOD_LEVEL3': { raw: 1858950, refined: 5576850 },
-    'T8_WOOD_LEVEL4': { raw: 5576850, refined: 16730550 },
+    'T2_WOOD': { raw: 145, refined: 298 },
+    'T3_WOOD': { raw: 298, refined: 895 },
+    'T4_WOOD': { raw: 845, refined: 2535 },
+    'T4_WOOD_LEVEL1': { raw: 2535, refined: 7605 },
+    'T4_WOOD_LEVEL2': { raw: 7605, refined: 22815 },
+    'T4_WOOD_LEVEL3': { raw: 22815, refined: 68445 },
+    'T4_WOOD_LEVEL4': { raw: 68445, refined: 205335 },
+    'T5_WOOD': { raw: 2535, refined: 7605 },
+    'T5_WOOD_LEVEL1': { raw: 7605, refined: 22815 },
+    'T5_WOOD_LEVEL2': { raw: 22815, refined: 68445 },
+    'T5_WOOD_LEVEL3': { raw: 68445, refined: 205335 },
+    'T5_WOOD_LEVEL4': { raw: 205335, refined: 616005 },
+    'T6_WOOD': { raw: 7605, refined: 22815 },
+    'T6_WOOD_LEVEL1': { raw: 22815, refined: 68445 },
+    'T6_WOOD_LEVEL2': { raw: 68445, refined: 205335 },
+    'T6_WOOD_LEVEL3': { raw: 205335, refined: 616005 },
+    'T6_WOOD_LEVEL4': { raw: 616005, refined: 1848015 },
+    'T7_WOOD': { raw: 22815, refined: 68445 },
+    'T7_WOOD_LEVEL1': { raw: 68445, refined: 205335 },
+    'T7_WOOD_LEVEL2': { raw: 205335, refined: 616005 },
+    'T7_WOOD_LEVEL3': { raw: 616005, refined: 1848015 },
+    'T7_WOOD_LEVEL4': { raw: 1848015, refined: 5544045 },
+    'T8_WOOD': { raw: 68445, refined: 205335 },
+    'T8_WOOD_LEVEL1': { raw: 205335, refined: 616005 },
+    'T8_WOOD_LEVEL2': { raw: 616005, refined: 1848015 },
+    'T8_WOOD_LEVEL3': { raw: 1848015, refined: 5544045 },
+    'T8_WOOD_LEVEL4': { raw: 5544045, refined: 16632135 },
     
     // Pierre
     'T2_ROCK': { raw: 120, refined: 240 },
